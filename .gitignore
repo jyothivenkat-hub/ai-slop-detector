@@ -1,0 +1,13 @@
+# Vendored fork with its own git history and remote:
+# github.com/jyothivenkat-hub/watermarks-remover
+# Cloned locally, versioned separately, not part of this repo.
+vendor/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Slop Detector</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="slop.css" />
+  </head>
+  <body>
+    <main class="page-shell detector-shell">
+      <nav class="top-nav" aria-label="Tool navigation">
+        <div class="nav-links">
+          <a class="active" href="index.html">AI Slop Detector</a>
+          <a href="watermark.html">AI Watermark Remover</a>
+        </div>
+        <button class="ghost-button nav-settings-button" type="button" data-model-settings-open>
+          Model settings
+        </button>
+      </nav>
+
+      <section class="workspace" aria-label="AI slop detector">
+        <div class="editor-panel">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Text + code scanner</p>
+              <h1>AI Slop Detector</h1>
+              <p class="page-description">
+                Detects AI slop signals and suggests clearer wording without claiming the text is human-written.
+              </p>
+            </div>
+            <button class="ghost-button" id="clearButton" type="button">Clear</button>
+          </header>
+
+          <label class="input-label" for="sourceText">Paste text to audit</label>
+          <div class="mode-control" role="group" aria-label="Analyzer mode">
+            <button class="mode-button active" type="button" data-mode="auto">Auto</button>
+            <button class="mode-button" type="button" data-mode="text">Text</button>
+            <button class="mode-button" type="button" data-mode="code">Code</button>
+          </div>
+          <textarea
+            id="sourceText"
+            spellcheck="true"
+            placeholder="Paste a paragraph, post, landing page section, email, essay excerpt, or code snippet..."
+          ></textarea>
+
+          <div class="controls" aria-label="Detector controls">
+            <button class="primary-button" id="analyzeButton" type="button">Analyze</button>
+            <button class="secondary-button" id="sampleSlopButton" type="button">Load slop sample</button>
+            <button class="secondary-button" id="sampleCleanButton" type="button">Load cleaner sample</button>
+            <button class="secondary-button" id="sampleCodeButton" type="button">Load code sample</button>
+          </div>
+        </div>
+
+        <aside class="results-panel" aria-label="Detection results">
+          <div class="score-block">
+            <div class="score-ring" id="scoreRing" style="--score: 0">
+              <span id="scoreValue">0</span>
+            </div>
+            <div>
+              <p class="eyebrow">Slop score</p>
+              <h2 id="verdict">Paste text to begin</h2>
+              <p id="scoreSummary" class="muted">
+                The detector looks for generic phrasing, punctuation markers, weak detail, repetition, and synthetic rhythm.
+              </p>
+            </div>
+          </div>
+
+          <div class="meter-grid">
+            <div class="meter">
+              <span id="metricOneLabel">Markers</span>
+              <strong id="clicheMetric">0</strong>
+            </div>
+            <div class="meter">
+              <span id="metricTwoLabel">Generic words</span>
+              <strong id="genericMetric">0</strong>
+            </div>
+            <div class="meter">
+              <span id="metricThreeLabel">Concrete detail</span>
+              <strong id="detailMetric">0%</strong>
+            </div>
+            <div class="meter">
+              <span id="metricFourLabel">Sentence sameness</span>
+              <strong id="rhythmMetric">0%</strong>
+            </div>
+          </div>
+
+          <section class="axis-panel" aria-label="Score breakdown by axis">
+            <div class="axis-heading">
+              <h3 id="axisMode">Text axes</h3>
+              <span class="axis-total" id="axisTotal">0 / 100</span>
+            </div>
+            <ul class="axis-list" id="axisList">
+              <li class="empty-state">Run the scanner to see the breakdown.</li>
+            </ul>
+            <p class="axis-footnote">
+              Each axis is a share of the total. Fix the tallest bar first.
+            </p>
+          </section>
+
+          <div class="tabs" role="tablist" aria-label="Result views">
+            <button class="tab active" type="button" data-tab="flags">Flags</button>
+            <button class="tab" type="button" data-tab="highlight">Highlight</button>
+            <button class="tab" type="button" data-tab="rewrite">Rewrite notes</button>
+            <button class="tab" type="button" data-tab="cleaner">Cleaner draft</button>
+          </div>
+
+          <section class="tab-panel active" id="flagsPanel" aria-label="Flagged patterns">
+            <ul class="flag-list" id="flagList">
+              <li class="empty-state">No flags yet.</li>
+            </ul>
+          </section>
+
+          <section class="tab-panel" id="highlightPanel" aria-label="Highlighted text">
+            <div class="highlight-output" id="highlightOutput">
+              Paste text and run the scanner to see suspicious phrases highlighted.
+            </div>
+          </section>
+
+          <section class="tab-panel" id="rewritePanel" aria-label="Rewrite notes">
+            <ul class="rewrite-list" id="rewriteList">
+              <li>Replace abstract claims with specific people, numbers, dates, constraints, or tradeoffs.</li>
+              <li>Cut hype adjectives before changing the structure.</li>
+            </ul>
+          </section>
+
+          <section class="tab-panel" id="cleanerPanel" aria-label="Suggested cleaner draft">
+            <div class="cleaner-actions">
+              <button class="primary-button compact-button" id="modelRewriteButton" type="button">Generate with model</button>
+              <button class="secondary-button compact-button" id="useCleanerButton" type="button">Use draft</button>
+              <button class="secondary-button compact-button" id="copyCleanerButton" type="button">Copy</button>
+              <span class="model-rewrite-status" id="modelRewriteStatus">Local rules</span>
+            </div>
+            <div class="cleaner-output" id="cleanerOutput" tabindex="0">
+              Run analysis to generate a cleaner draft.
+            </div>
+            <ul class="cleaner-gaps" id="cleanerGaps" hidden></ul>
+          </section>
+
+          <p class="source-note">
+            Code-mode framing adapts ideas from
+            <a href="https://github.com/flamehaven01/AI-SLOP-Detector" target="_blank" rel="noreferrer">flamehaven01/AI-SLOP-Detector</a>.
+            Four-axis code scoring and cross-language checks follow
+            <a href="https://github.com/rsionnach/sloppylint" target="_blank" rel="noreferrer">rsionnach/sloppylint</a>.
+            Structural prose patterns follow
+            <a href="https://github.com/petergyang/no-ai-slop" target="_blank" rel="noreferrer">petergyang/no-ai-slop</a>
+            and
+            <a href="https://github.com/hardikpandya/stop-slop" target="_blank" rel="noreferrer">hardikpandya/stop-slop</a>.
+          </p>
+        </aside>
+      </section>
+    </main>
+
+    <script src="model-settings.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

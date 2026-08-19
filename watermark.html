@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Watermark Remover</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <nav class="top-nav" aria-label="Tool navigation">
+        <div class="nav-links">
+          <a href="index.html">AI Slop Detector</a>
+          <a class="active" href="watermark.html">AI Watermark Remover</a>
+        </div>
+        <button class="ghost-button nav-settings-button" type="button" data-model-settings-open>
+          Model settings
+        </button>
+      </nav>
+
+      <section class="workspace" aria-label="AI watermark remover">
+        <div class="input-panel">
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow">AI provenance cleaner</p>
+              <h1>AI Watermark Remover</h1>
+              <p class="page-description">
+                Removes hidden Unicode, AI provenance, and metadata markers from pasted text or authorized files.
+              </p>
+            </div>
+            <span class="status-pill" id="serviceStatus">Checking service</span>
+          </header>
+
+          <div class="notice">
+            Use this only on text and files you own or are authorized to edit. This does not remove visible logos or copyright watermarks.
+          </div>
+
+          <div class="source-switch" role="tablist" aria-label="Input source">
+            <button class="source-mode-button active" type="button" data-source-mode="text">Paste text</button>
+            <button class="source-mode-button" type="button" data-source-mode="file">Add file</button>
+          </div>
+
+          <section class="source-panel active" id="textSourcePanel" aria-label="Pasted text input">
+            <label class="input-label" for="pastedText">Text to clean</label>
+            <textarea
+              id="pastedText"
+              spellcheck="true"
+              placeholder="Paste text with invisible marks, odd Unicode, metadata-like traces, or AI watermark artifacts..."
+            ></textarea>
+          </section>
+
+          <section class="source-panel hidden" id="fileSourcePanel" aria-label="File input">
+            <label class="drop-zone" id="dropZone" for="fileInput">
+              <input id="fileInput" type="file" />
+              <span class="drop-title">Drop a file or click to choose</span>
+              <span class="drop-copy">Text, Markdown, HTML, images, PDF, DOCX, ODT, SVG, PNG, JPEG, WebP</span>
+            </label>
+          </section>
+
+          <div class="file-summary" id="fileSummary">No text or file selected.</div>
+
+          <section class="option-panel" aria-label="Cleaning options">
+            <h2>Options</h2>
+            <label class="check-row">
+              <input id="nfkcOption" type="checkbox" />
+              <span>Normalize Unicode text</span>
+            </label>
+            <label class="check-row">
+              <input id="homoglyphOption" type="checkbox" />
+              <span>Aggressive homoglyph cleanup</span>
+            </label>
+            <label class="check-row">
+              <input id="containerTextOption" type="checkbox" checked />
+              <span>Clean embedded text in containers</span>
+            </label>
+            <label class="check-row">
+              <input id="keepMetadataOption" type="checkbox" />
+              <span>Keep non-AI metadata when possible</span>
+            </label>
+            <label class="check-row">
+              <input id="stripAllOption" type="checkbox" />
+              <span>Strip all image metadata</span>
+            </label>
+          </section>
+
+          <div class="actions">
+            <button class="primary-button" id="inspectButton" type="button" disabled>Inspect</button>
+            <button class="secondary-button" id="cleanButton" type="button" disabled>Clean</button>
+            <button class="ghost-button" id="resetButton" type="button">Reset</button>
+          </div>
+        </div>
+
+        <aside class="result-panel" aria-label="Watermark removal results">
+          <div class="result-topline">
+            <div>
+              <p class="eyebrow">Result</p>
+              <h2 id="resultTitle">Paste text or add a file</h2>
+            </div>
+            <div class="result-actions">
+              <a class="download-link hidden" id="downloadLink" download>Download cleaned file</a>
+              <button class="ghost-button compact-button hidden" id="copyCleanedTextButton" type="button">Copy cleaned text</button>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <span>Kind</span>
+              <strong id="kindMetric">-</strong>
+            </div>
+            <div class="metric">
+              <span>Suspicious</span>
+              <strong id="suspiciousMetric">-</strong>
+            </div>
+            <div class="metric">
+              <span>Cleaned size</span>
+              <strong id="sizeMetric">-</strong>
+            </div>
+            <div class="metric">
+              <span>Service</span>
+              <strong id="serviceMetric">-</strong>
+            </div>
+          </div>
+
+          <section class="preview-grid" aria-label="File previews">
+            <div class="preview-card">
+              <h3>Original</h3>
+              <div class="preview-box" id="originalPreview">Paste text or add a file to preview it here.</div>
+            </div>
+            <div class="preview-card">
+              <h3>Cleaned</h3>
+              <div class="preview-box" id="cleanedPreview" tabindex="0">Run clean to preview output.</div>
+            </div>
+          </section>
+
+          <section class="report-section" aria-label="Inspection summary">
+            <div class="section-heading">
+              <h3>Inspection summary</h3>
+              <button class="ghost-button compact-button" id="copyReportButton" type="button" disabled>Copy summary</button>
+            </div>
+            <div class="summary-output" id="reportOutput">The inspection and cleaning summary will appear here.</div>
+          </section>
+
+          <p class="source-note">
+            Backend:
+            <a href="https://github.com/jyothivenkat-hub/watermarks-remover" target="_blank" rel="noreferrer">jyothivenkat-hub/watermarks-remover</a>
+            via
+            <a href="https://github.com/guillaumemeyer/watermarks-remover" target="_blank" rel="noreferrer">guillaumemeyer/watermarks-remover</a>.
+          </p>
+        </aside>
+      </section>
+    </main>
+
+    <script src="model-settings.js"></script>
+    <script src="watermark.js"></script>
+  </body>
+</html>
