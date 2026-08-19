@@ -82,6 +82,12 @@ never invents facts, so a draft with no concrete detail still scores on the
 Substance axis after cleaning. That residue is the signal to add specifics
 yourself. Cleaning is idempotent: running it twice gives the same text.
 
+The cleaner works paragraph by paragraph, so threads and numbered lists keep
+their structure. It also carries a hard guardrail: the draft is re-scored, and
+if it is not strictly cleaner than the pasted text, the original is returned
+unchanged with a note. The cleaner can never make a piece score worse than it
+started.
+
 Code is not auto-rewritten. A regex cannot safely edit logic, so code mode
 returns a numbered repair plan instead of a draft.
 

@@ -860,12 +860,13 @@ function findTricolons(text, sentences) {
     match = locator.exec(text);
   }
 
-  // Three-item lists are ordinary English. Only a repeated habit is a tell,
-  // so this is measured per 100 words rather than as a raw count.
+  // Three-item lists are ordinary English, so a handful across a normal-length
+  // piece is not a tell. Only flag when tricolons are both frequent and dense
+  // enough to read as a cadence habit rather than a few incidental lists.
   const words = getWords(text);
   const perHundred = found.length / Math.max(1, words.length / 100);
 
-  if (found.length < 2 || sentences.length < 3 || perHundred < 0.9) {
+  if (found.length < 3 || sentences.length < 3 || perHundred < 1.6) {
     return [];
   }
 
@@ -994,11 +995,11 @@ function normalizeCleanerDraft(text) {
   return text
     .replace(/\[([^\]]+)\]/g, "$1")
     .replace(/[ \t]+/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/[ \t]+([,.;:!?])/g, "$1")
     .replace(/,\s*,+/g, ",")
-    .replace(/(?:,\s*){2,}/g, ", ")
-    .replace(/\s+\n/g, "\n")
-    .replace(/\n\s+/g, "\n")
+    .replace(/(?:,[ \t]*){2,}/g, ", ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/\bthat help teams to\b/gi, "that help teams")
     .replace(/\bhelps you use\b/gi, "uses")
@@ -1011,7 +1012,7 @@ function normalizeCleanerDraft(text) {
     .replace(/\bkeeps teams moving,\s*faster,\s*smarter,\s*better\b/gi, "helps teams move faster with clearer priorities")
     .replace(/([.!?])([A-Za-z])/g, "$1 $2")
     .replace(/\s+([.!?,;:])/g, "$1")
-    .replace(/(^|[.!?]\s+)([a-z])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`)
+    .replace(/(^|[.!?][ \t]+)([a-z])/g, (match, prefix, letter) => `${prefix}${letter.toUpperCase()}`)
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
@@ -1087,12 +1088,11 @@ function removeStrandedDemonstratives(text) {
     .trim();
 }
 
-function buildCleanerDraft(text) {
-  // The cleaner is a prose cleaner, so it works on the same normalized text the
-  // scorer indexes. This keeps the draft coherent instead of splicing markdown
-  // syntax into the middle of rewritten sentences.
-  let draft = stripMarkdown(text);
-  const gaps = [];
+// Runs the rewrite passes on one block of text (no blank lines inside it).
+// Kept separate so the whole draft can be cleaned paragraph by paragraph,
+// which preserves the blank-line structure of threads and lists.
+function cleanParagraph(block, gaps) {
+  let draft = block;
 
   for (const item of STRUCTURAL_REWRITES) {
     item.pattern.lastIndex = 0;
@@ -1126,16 +1126,43 @@ function buildCleanerDraft(text) {
   draft = normalizeSynonyms(draft);
   draft = removeThinSentences(normalizeCleanerDraft(draft));
   draft = removeStrandedDemonstratives(normalizeCleanerDraft(draft));
-  draft = normalizeCleanerDraft(draft);
+  return normalizeCleanerDraft(draft);
+}
+
+// A cleaner must never hand back text that scores worse than what it was given.
+// It cleans each paragraph, keeps the paragraph structure, then re-scores. If
+// the rewrite does not lower the slop score, the original is returned untouched
+// with a note, so the tab can never make a piece look worse than it started.
+function buildCleanerDraft(text, originalScore) {
+  const source = stripMarkdown(text);
+  const gaps = [];
+  const blocks = source.split(/\n{2,}/);
+  const cleanedBlocks = blocks.map((block) => (block.trim() ? cleanParagraph(block, gaps) : ""));
+  const draft = cleanedBlocks.filter((block) => block.length > 0).join("\n\n").trim();
+
+  const uniqueGaps = [...new Set(gaps)];
 
   if (!draft || draft.length < 24) {
     return {
       text: "State the concrete claim: who needs what, why it matters, and what evidence supports it.",
-      gaps: []
+      gaps: uniqueGaps
     };
   }
 
-  return { text: draft, gaps: [...new Set(gaps)] };
+  // Guardrail. originalScore is the score of the pasted text; only ship the
+  // draft when it is strictly cleaner.
+  const baseline = typeof originalScore === "number" ? originalScore : analyzeProseCore(text).score;
+  const draftScore = analyzeProseCore(draft).score;
+
+  if (draftScore >= baseline) {
+    return {
+      text: source.trim(),
+      gaps: [],
+      note: `No local rewrite scored cleaner than the original (${baseline}). The remaining signal is structure or missing detail that the rule-based cleaner will not touch. Left as is.`
+    };
+  }
+
+  return { text: draft, gaps: uniqueGaps };
 }
 
 function suggestCleanerText(text) {
@@ -1299,7 +1326,7 @@ function analyzeInput(text) {
   return mode === "code" ? analyzeCode(trimmed) : analyzeProse(trimmed);
 }
 
-function analyzeProse(rawText) {
+function analyzeProseCore(rawText) {
   const text = stripMarkdown(rawText);
   const words = getWords(text);
   const sentences = getSentences(text);
@@ -1365,7 +1392,6 @@ function analyzeProse(rawText) {
   ]);
 
   const score = axisTotal(axes);
-  const cleaner = buildCleanerDraft(rawText);
 
   return {
     mode: "text",
@@ -1382,10 +1408,20 @@ function analyzeProse(rawText) {
       ]
     },
     suggestions: makeProseSuggestions({ score, hits, detailScore, rhythmSameness, repeatedStarts, abstractCount, words, axes }),
-    cleanerDraft: cleaner.text,
-    cleanerGaps: cleaner.gaps,
     normalizedText: text,
     canApplyCleaner: true
+  };
+}
+
+function analyzeProse(rawText) {
+  const core = analyzeProseCore(rawText);
+  const cleaner = buildCleanerDraft(rawText, core.score);
+
+  return {
+    ...core,
+    cleanerDraft: cleaner.text,
+    cleanerGaps: cleaner.gaps,
+    cleanerNote: cleaner.note || ""
   };
 }
 
@@ -1676,12 +1712,21 @@ function renderSuggestions(suggestions) {
   }
 }
 
-function renderCleanerGaps(gaps) {
+function renderCleanerGaps(gaps, note) {
   if (!cleanerGaps) {
     return;
   }
 
   cleanerGaps.innerHTML = "";
+
+  if (note) {
+    const item = document.createElement("li");
+    item.className = "cleaner-gaps-note";
+    item.textContent = note;
+    cleanerGaps.appendChild(item);
+    cleanerGaps.hidden = false;
+    return;
+  }
 
   if (!gaps || gaps.length === 0) {
     cleanerGaps.hidden = true;
@@ -1705,7 +1750,7 @@ function renderCleanerGaps(gaps) {
 function renderCleanerDraft(result) {
   latestCleanerDraft = result.cleanerDraft || "";
   cleanerOutput.textContent = latestCleanerDraft || "No cleaner draft generated.";
-  renderCleanerGaps(result.cleanerGaps);
+  renderCleanerGaps(result.cleanerGaps, result.cleanerNote);
   useCleanerButton.disabled = !result.canApplyCleaner || !latestCleanerDraft;
   copyCleanerButton.disabled = !latestCleanerDraft;
   updateModelRewriteControls();

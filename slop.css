@@ -365,6 +365,11 @@ textarea:focus {
   color: var(--muted);
 }
 
+.cleaner-gaps-note {
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .cleaner-gaps-heading {
   font-weight: 800;
   color: var(--ink) !important;
