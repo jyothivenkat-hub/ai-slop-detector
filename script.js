@@ -37,19 +37,19 @@ let modelRewriteBusy = false;
 const SLOP_PATTERNS = [
   {
     type: "cliche opener",
-    pattern: /\bin today's (?:fast[- ]paced|ever[- ]evolving|digital|modern) (?:world|landscape|age|environment)\b/gi,
+    pattern: /\bin (?:today's|the)\s+(?:(?:fast[- ]paced|ever[- ]evolving|ever[- ]changing|rapidly[- ]changing|digital|modern|competitive|dynamic|hyper[- ]connected)\s+){1,3}(?:world|landscape|age|era|environment|marketplace|economy)\b/gi,
     weight: 10,
     note: "Common synthetic setup that rarely adds evidence."
   },
   {
     type: "hype phrase",
-    pattern: /\b(?:game[- ]changer|cutting[- ]edge|revolutionary|transformative|next[- ]level|world[- ]class)\b/gi,
+    pattern: /\b(?:game[- ]changers?|cutting[- ]edge|bleeding[- ]edge|revolutionary|revolutioniz(?:e|es|ing|ed)|transformative|next[- ]level|world[- ]class|best[- ]in[- ]class|state[- ]of[- ]the[- ]art|industry[- ]leading)\b/gi,
     weight: 7,
     note: "Big claim without proof."
   },
   {
     type: "generic promise",
-    pattern: /\b(?:unlock|unleash|elevate|empower|leverage|streamline|optimize|harness)\b/gi,
+    pattern: /\b(?:unlock|unleash|elevate|empower|leverage|streamline|optimize|optimise|harness|supercharge|turbocharge|revolutionize|spearhead)(?:s|es|ing|ed)?\b/gi,
     weight: 5,
     note: "Corporate verb that needs a concrete object or outcome."
   },
@@ -243,6 +243,13 @@ const CODE_PATTERNS = [
     weight: 6,
     critical: false,
     note: "The comment admits uncertainty that the code never resolves."
+  },
+  {
+    type: "mutable_default_arg",
+    pattern: /\bdef\s+\w+\s*\([^)]*=\s*(?:\[\s*\]|\{\s*\}|set\(\)|dict\(\)|list\(\))[^)]*\)/g,
+    weight: 12,
+    critical: true,
+    note: "Mutable default argument shares state across calls. Use None and build inside."
   }
 ];
 
@@ -332,7 +339,8 @@ const CODE_LIES_TYPES = [
   "ellipsis_placeholder",
   "empty_function",
   "return_empty_stub",
-  "hedging_comment"
+  "hedging_comment",
+  "mutable_default_arg"
 ];
 
 const CODE_NOISE_TYPES = ["debug_output", "todo_comment", "placeholder_name"];
@@ -479,17 +487,31 @@ const CLEANER_REPLACEMENTS = [
   { pattern: /\bdynamic\b/gi, replacement: "working" },
   { pattern: /\bholistic\b/gi, replacement: "complete" },
   { pattern: /\binnovative solutions\b/gi, replacement: "practical tools" },
-  { pattern: /\bunlock their full potential\b/gi, replacement: "reach a measurable outcome" },
+  { pattern: /\bunlock(?:s|ing)?\s+(?:their|its|your|the)\s+full potential\b/gi, replacement: "reach a measurable outcome" },
   { pattern: /\bunlock\b/gi, replacement: "make possible" },
-  { pattern: /\bunleash\b/gi, replacement: "support" },
-  { pattern: /\belevate\b/gi, replacement: "improve" },
+  { pattern: /\bunlocks\b/gi, replacement: "makes possible" },
+  { pattern: /\bunlocking\b/gi, replacement: "making possible" },
+  { pattern: /\bunleash(?:es|ing)?\b/gi, replacement: "support" },
   { pattern: /\belevates\b/gi, replacement: "improves" },
+  { pattern: /\belevating\b/gi, replacement: "improving" },
+  { pattern: /\belevate\b/gi, replacement: "improve" },
+  { pattern: /\bempowers\b/gi, replacement: "helps" },
+  { pattern: /\bempowering\b/gi, replacement: "helping" },
   { pattern: /\bempower\b/gi, replacement: "help" },
+  { pattern: /\bleverages\b/gi, replacement: "uses" },
+  { pattern: /\bleveraging\b/gi, replacement: "using" },
   { pattern: /\bleverage\b/gi, replacement: "use" },
+  { pattern: /\bharnesses\b/gi, replacement: "uses" },
+  { pattern: /\bharnessing\b/gi, replacement: "using" },
   { pattern: /\bharness\b/gi, replacement: "use" },
-  { pattern: /\bstreamline\b/gi, replacement: "reduce friction in" },
   { pattern: /\bstreamlines\b/gi, replacement: "simplifies" },
+  { pattern: /\bstreamlining\b/gi, replacement: "simplifying" },
+  { pattern: /\bstreamline\b/gi, replacement: "reduce friction in" },
+  { pattern: /\boptimizes\b/gi, replacement: "improves" },
+  { pattern: /\boptimizing\b/gi, replacement: "improving" },
   { pattern: /\boptimize\b/gi, replacement: "improve" },
+  { pattern: /\bsupercharges?\b/gi, replacement: "speeds up" },
+  { pattern: /\bsupercharging\b/gi, replacement: "speeding up" },
   { pattern: /\bevery touchpoint\b/gi, replacement: "a key customer interaction" },
   { pattern: /\bmeaningful insights\b/gi, replacement: "evidence" },
   { pattern: /\bimpactful growth\b/gi, replacement: "measurable growth" },
@@ -988,7 +1010,14 @@ function getRhythmSameness(sentences) {
   const lengthSameness = average >= 10 && average <= 28 ? clamp(100 - standardDeviation * 12, 0, 100) : 20;
   const startPenalty = clamp(repeatedStarts * 20, 0, 45);
 
-  return Math.round(clamp(lengthSameness + startPenalty, 0, 100));
+  // Staccato fragmentation: a run of very short sentences ("It works. It
+  // scales. It ships.") reads as machine cadence but sits below the mid-length
+  // band the sameness check covers, so it needs its own signal.
+  const shortSentences = lengths.filter((length) => length > 0 && length <= 5).length;
+  const shortRatio = shortSentences / lengths.length;
+  const staccatoPenalty = lengths.length >= 4 && shortRatio >= 0.6 ? clamp(shortRatio * 60, 0, 55) : 0;
+
+  return Math.round(clamp(lengthSameness + startPenalty + staccatoPenalty, 0, 100));
 }
 
 function normalizeCleanerDraft(text) {
@@ -998,6 +1027,8 @@ function normalizeCleanerDraft(text) {
     .replace(/[ \t]+([,.;:!?])/g, "$1")
     .replace(/,\s*,+/g, ",")
     .replace(/(?:,[ \t]*){2,}/g, ", ")
+    .replace(/([a-z])\s+,\s+/gi, "$1, ")
+    .replace(/\b(deliver|provide|offer|build|create|drive|bring|ship|design|support)s?\s*,\s+([a-z])/gi, "$1 $2")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -1488,7 +1519,14 @@ function analyzeCode(text) {
     }
   ]);
 
-  const score = axisTotal(axes);
+  // A file made mostly of placeholders is critical no matter how short it is.
+  // The axis caps alone can under-score a tiny all-stub snippet, so floor the
+  // result on how many stub signals fired.
+  const stubCount = hits.filter((hit) =>
+    ["empty_function", "pass_placeholder", "ellipsis_placeholder", "not_implemented", "return_empty_stub"].includes(hit.type)
+  ).length;
+  const placeholderFloor = stubCount >= 2 ? clamp(46 + stubCount * 9, 0, 92) : 0;
+  const score = Math.max(axisTotal(axes), placeholderFloor);
 
   return {
     mode: "code",

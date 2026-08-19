@@ -40,13 +40,16 @@ to the score, so the breakdown is always the reason for the number.
 
 **Text axes** (Phrasing, Structure, Rhythm, Substance, Vocabulary)
 
-- Phrasing: cliche openers, hype, stock AI phrases, importance puffery,
-  superficial analysis, weasel attribution.
+- Phrasing: cliche openers (including stacked-adjective forms like "in today's
+  fast-paced digital landscape"), hype, stock AI phrases, importance puffery,
+  superficial analysis, weasel attribution. Corporate verbs are matched in
+  their inflected forms too (empower, empowers, empowering).
 - Structure: rhetorical frames that stand in for an argument. Binary contrasts
   ("it is not X, it is Y"), throat-clearing openers, faux-insight setups, colon
   reveals, dramatic fragments, fake-profound endings, repeated tricolons.
-- Rhythm: sentence-length variance plus punctuation cadence. Punctuation fires
-  on density, not on presence, so one em dash is not a flag.
+- Rhythm: sentence-length variance, staccato fragmentation (runs of very
+  short sentences), plus punctuation cadence. Punctuation fires on density,
+  not on presence, so one em dash is not a flag.
 - Substance: concrete detail density (numbers, names, dates) against abstract
   noun density.
 - Vocabulary: corporate verbs, empty adjectives, lexical diversity, and synonym
@@ -54,7 +57,9 @@ to the score, so the breakdown is always the reason for the number.
 
 **Code axes** (Lies, Noise, Soul, Structure)
 
-- Lies: placeholders, stubs, hedging comments, imports wired to nothing.
+- Lies: placeholders, stubs, mutable default arguments, hedging comments,
+  imports wired to nothing. A snippet that is mostly stubs is floored to a
+  critical score regardless of its length.
 - Noise: debug output, leftover TODOs, placeholder naming.
 - Soul: comments promising more maturity than the logic shows.
 - Structure: bare except, star imports, global state, ignored errors, and
