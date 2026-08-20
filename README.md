@@ -1,37 +1,56 @@
-# AI Slop and Watermark Tools
+# AI Slop Detector and Watermark Remover
 
-This workspace contains the AI slop detector as the first page and a frontend
-page for your fork of the MIT-licensed
-[`watermarks-remover`](https://github.com/jyothivenkat-hub/watermarks-remover)
-service cloned into `vendor/watermarks-remover`.
+Two local, no-key tools in one app:
 
-Upstream attribution:
-[`guillaumemeyer/watermarks-remover`](https://github.com/guillaumemeyer/watermarks-remover).
+1. **AI Slop Detector** ([`index.html`](index.html)) audits prose and code for
+   AI slop, scores it on named axes, and can rewrite the prose. All detection
+   and the local cleaner run entirely in the browser, no backend required.
+2. **AI Watermark Remover** ([`watermark.html`](watermark.html)) strips
+   invisible Unicode, AI provenance metadata, and C2PA marks from text and
+   files. This half calls a small Python backend.
 
-## Run
+For how it is put together and how to build one yourself, see
+[ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Run locally
 
 ```bash
 python3 server.py
 ```
 
-Open `http://127.0.0.1:8020/` for the AI slop detector.
+Open `http://127.0.0.1:8020/` for the slop detector and
+`http://127.0.0.1:8020/watermark.html` for the watermark remover.
 
-Open `http://127.0.0.1:8020/watermark.html` for the watermark remover. It
-supports pasted text and file uploads.
+The local server starts the fork-backed stdlib Python service on
+`127.0.0.1:8767` and proxies the API below. On Vercel there is no subprocess:
+each `/api` route is a serverless function that calls the same logic directly
+(see `api/`).
 
-Use `Model settings` in the top bar to choose local rules, a provider API key,
-Ollama, or a custom OpenAI-compatible endpoint. These settings are saved in the
-browser for this local app and used only when `Generate with model` is clicked
-in the cleaner tab. The current tools still work without a key.
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/api/health` | GET | Liveness check |
+| `/api/capabilities` | GET | Which scorers and tools are available |
+| `/api/inspect` | POST | Report watermark and metadata findings for a file |
+| `/api/clean` | POST | Return the cleaned file bytes |
+| `/api/rewrite` | POST | Optional model-backed prose or code rewrite |
 
-The local server starts the fork-backed stdlib Python service on `127.0.0.1:8767`
-and proxies:
+`Model settings` in the top bar chooses local rules (default), a provider API
+key, Ollama, or a custom OpenAI-compatible endpoint. Settings are stored in the
+browser and only used when `Generate with model` is clicked. The tools work
+without a key.
 
-- `GET /api/health`
-- `GET /api/capabilities`
-- `POST /api/inspect`
-- `POST /api/clean`
-- `POST /api/rewrite`
+## Deploy
+
+The repo is Vercel-ready. Static files serve from the root; the `/api` routes
+are Python serverless functions in `api/` with no third-party dependencies.
+
+```bash
+vercel --prod
+```
+
+`vercel.json` maps `/api/inspect` to `api/scan.py` (the filename avoids
+shadowing Python's stdlib `inspect` module) and bundles the vendored watermark
+modules under `api/_wm/` into each function.
 
 ## What the slop detector checks
 
