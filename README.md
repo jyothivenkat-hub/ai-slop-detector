@@ -148,6 +148,16 @@ started.
 Code is not auto-rewritten. A regex cannot safely edit logic, so code mode
 returns a numbered repair plan instead of a draft.
 
+## Privacy
+
+The slop detector and its local cleaner run entirely in the browser; that text
+never leaves your machine. The watermark remover is different: its `Inspect`
+and `Clean` send your pasted text or uploaded file to the backend to process
+it. The backend works on it in memory and does not store it, but the data does
+leave your browser, so do not paste anything sensitive. The optional
+`Generate with model` rewrite likewise sends text to whichever model source you
+configure (a provider, or your own local Ollama).
+
 ## Scope
 
 Use this only on files you own or are authorized to edit. The upstream project
