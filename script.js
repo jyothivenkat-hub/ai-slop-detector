@@ -1904,6 +1904,86 @@ function renderAnalysis() {
   renderCleanerDraft(result);
 }
 
+// Same prompts the server uses, so a browser-direct Ollama call produces the
+// same kind of rewrite. Kept in sync with api/_rewrite.py rewrite_messages.
+function buildRewriteMessages(text, mode) {
+  if (mode === "code") {
+    return {
+      system:
+        "You revise code or code-adjacent text to remove AI slop. Preserve APIs, facts, and intent. " +
+        "Do not invent missing dependencies. Remove placeholder naming, hollow comments, and unfinished scaffolding. " +
+        "Return only the revised code or a concise repair plan if there is not enough context to safely rewrite it.",
+      user: `Clean this code or repair plan. Return only the cleaned result:\n\n${text}`
+    };
+  }
+
+  return {
+    system:
+      "You rewrite text to remove AI slop. Preserve the user's meaning and facts. " +
+      "Do not invent sources, metrics, names, features, or outcomes. " +
+      "Remove generic hype, bracket placeholders, empty quotes, excessive hyphens, and em-dash-heavy rhythm. " +
+      "If the original is missing a specific detail, write a plain sentence that names the gap instead of using brackets. " +
+      "Return only the cleaner replacement text.",
+    user: `Rewrite this text so it sounds specific, plain, and usable:\n\n${text}`
+  };
+}
+
+function stripModelWrapping(text) {
+  const lines = String(text || "").trim().split("\n");
+  if (lines[0] && lines[0].trim().startsWith("```")) {
+    lines.shift();
+    if (lines.length && lines[lines.length - 1].trim() === "```") {
+      lines.pop();
+    }
+  }
+  return lines.join("\n").trim();
+}
+
+// Calls the visitor's own Ollama straight from the page. This is what lets the
+// hosted demo use a local model: the request never touches our server, so
+// "localhost" means the visitor's machine, not the server's.
+async function ollamaBrowserRewrite(text, mode, settings) {
+  const baseUrl = (settings.ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
+  const model = (settings.ollamaModel || "").trim();
+  if (!model) {
+    throw new Error("Enter an Ollama model name in Model settings.");
+  }
+
+  const { system, user } = buildRewriteMessages(text, mode);
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        options: { temperature: 0.25 },
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user }
+        ]
+      })
+    });
+  } catch (networkError) {
+    const origin = window.location.origin;
+    throw new Error(
+      `Could not reach Ollama at ${baseUrl}. Make sure it is running, and allow this page: ` +
+        `OLLAMA_ORIGINS='${origin}' ollama serve (or OLLAMA_ORIGINS='*').`
+    );
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error || `Ollama returned HTTP ${response.status}.`);
+  }
+  const content = stripModelWrapping(payload?.message?.content || payload?.response || "");
+  if (!content) {
+    throw new Error("Ollama did not return any text.");
+  }
+  return content;
+}
+
 async function generateModelRewrite() {
   const text = sourceText.value.trim();
   const settings = getModelSettings();
@@ -1930,6 +2010,28 @@ async function generateModelRewrite() {
 
   modelRewriteBusy = true;
   updateModelRewriteControls(`Sending text to ${getModelSourceLabel(settings)}...`);
+
+  if (settings.source === "ollama" && settings.ollamaInBrowser !== false) {
+    try {
+      latestCleanerDraft = (await ollamaBrowserRewrite(text, result.mode, settings)).trim();
+      cleanerOutput.textContent = latestCleanerDraft || "The model did not return a cleaner draft.";
+      useCleanerButton.disabled = !result.canApplyCleaner || !latestCleanerDraft;
+      copyCleanerButton.disabled = !latestCleanerDraft;
+      modelRewriteBusy = false;
+      updateModelRewriteControls("Generated with Ollama (in your browser).");
+    } catch (error) {
+      const fallbackDraft = result.cleanerDraft || "";
+      latestCleanerDraft = fallbackDraft;
+      cleanerOutput.textContent = `${error.message || "Ollama generation failed."}\n\nLocal draft:\n${
+        fallbackDraft || "No local draft available."
+      }`;
+      useCleanerButton.disabled = !result.canApplyCleaner || !fallbackDraft;
+      copyCleanerButton.disabled = !fallbackDraft;
+      modelRewriteBusy = false;
+      updateModelRewriteControls("Ollama generation failed. Showing local draft.");
+    }
+    return;
+  }
 
   try {
     const response = await fetch("/api/rewrite", {

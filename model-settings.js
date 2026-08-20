@@ -7,6 +7,7 @@ const DEFAULT_MODEL_SETTINGS = {
   providerApiKey: "",
   ollamaUrl: "http://localhost:11434",
   ollamaModel: "",
+  ollamaInBrowser: true,
   customEndpoint: "",
   customModel: "",
   customApiKey: ""
@@ -34,6 +35,17 @@ function setSettingValue(selector, value) {
   const field = document.querySelector(selector);
   if (field) {
     field.value = value || "";
+  }
+}
+
+function settingChecked(selector) {
+  return Boolean(document.querySelector(selector)?.checked);
+}
+
+function setSettingChecked(selector, value) {
+  const field = document.querySelector(selector);
+  if (field) {
+    field.checked = Boolean(value);
   }
 }
 
@@ -100,6 +112,16 @@ function createModelSettingsModal() {
             <span>Local model</span>
             <input id="ollamaModel" type="text" autocomplete="off" placeholder="Local model name" />
           </label>
+          <label class="model-field model-field-check">
+            <input id="ollamaInBrowser" type="checkbox" />
+            <span>Run Ollama from this browser (needed on hosted demos)</span>
+          </label>
+          <p class="model-field-hint">
+            Calls your local Ollama directly from the page, so it works even on the
+            hosted demo. Start Ollama allowing this site, for example
+            <code>OLLAMA_ORIGINS='*' ollama serve</code>. Turn this off to route the
+            call through the local server instead.
+          </p>
         </div>
 
         <div class="model-fields" data-model-fields="custom">
@@ -142,6 +164,7 @@ function readModelSettingsForm() {
     providerModel: settingValue("#providerModel"),
     ollamaUrl: settingValue("#ollamaUrl") || DEFAULT_MODEL_SETTINGS.ollamaUrl,
     ollamaModel: settingValue("#ollamaModel"),
+    ollamaInBrowser: settingChecked("#ollamaInBrowser"),
     customEndpoint: settingValue("#customEndpoint"),
     customApiKey: settingValue("#customApiKey"),
     customModel: settingValue("#customModel")
@@ -156,6 +179,7 @@ function renderModelSettingsForm() {
   setSettingValue("#providerModel", settings.providerModel);
   setSettingValue("#ollamaUrl", settings.ollamaUrl);
   setSettingValue("#ollamaModel", settings.ollamaModel);
+  setSettingChecked("#ollamaInBrowser", settings.ollamaInBrowser !== false);
   setSettingValue("#customEndpoint", settings.customEndpoint);
   setSettingValue("#customApiKey", settings.customApiKey);
   setSettingValue("#customModel", settings.customModel);

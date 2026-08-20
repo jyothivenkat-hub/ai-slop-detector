@@ -41,6 +41,37 @@ key, Ollama, or a custom OpenAI-compatible endpoint. Settings are stored in the
 browser and only used when `Generate with model` is clicked. The tools work
 without a key.
 
+## Use a local model (Ollama)
+
+Detection and the local cleaner need no model at all. The optional
+`Generate with model` rewrite can use a local Ollama model.
+
+Pull a model and start Ollama:
+
+```bash
+ollama pull qwen2.5
+ollama serve
+```
+
+Then open Model settings, choose `Local model via Ollama`, set the model name,
+and leave `Run Ollama from this browser` on. With that on, the page calls your
+local Ollama directly, so it works both when you run the app locally and on the
+hosted demo. When it is off, the rewrite is routed through the local
+`server.py` instead, which only reaches Ollama if the server and Ollama are on
+the same machine.
+
+On the hosted demo, the browser has to be allowed to reach your Ollama. Start
+it with the site allowed:
+
+```bash
+OLLAMA_ORIGINS='https://ai-slop-detector-xi.vercel.app' ollama serve
+# or, for any origin during local testing:
+OLLAMA_ORIGINS='*' ollama serve
+```
+
+If the page cannot reach Ollama, the cleaner shows the exact command to run and
+falls back to the local rule-based draft.
+
 ## Deploy
 
 The repo is Vercel-ready. Static files serve from the root; the `/api` routes
