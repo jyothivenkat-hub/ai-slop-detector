@@ -1,5 +1,7 @@
 # AI Slop Detector and Watermark Remover
 
+**Live: https://ai-slop-detector-xi.vercel.app**
+
 Two local, no-key tools in one app:
 
 1. **AI Slop Detector** ([`index.html`](index.html)) audits prose and code for
