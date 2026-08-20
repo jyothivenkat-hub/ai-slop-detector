@@ -255,7 +255,7 @@ const CODE_PATTERNS = [
 
 // Idioms carried over from another language. Models blend syntax from
 // everything they were trained on, so a Python file picks up JavaScript and
-// Java habits. Framing borrowed from rsionnach/sloppylint.
+// Java habits.
 const CROSS_LANGUAGE_PATTERNS = {
   python: [
     { pattern: /\.push\s*\(/g, note: "JavaScript .push() in Python. Use .append()." },
@@ -285,7 +285,6 @@ const CROSS_LANGUAGE_PATTERNS = {
 
 // Word clusters that describe the same thing. Generated prose rotates through
 // them to avoid repeating a noun, which reads as three different subjects.
-// Pattern named in petergyang/no-ai-slop.
 const SYNONYM_CLUSTERS = [
   ["agent", "agents", "assistant", "assistants", "copilot", "bot", "bots"],
   ["platform", "solution", "solutions", "ecosystem", "suite", "engine"],
@@ -299,8 +298,7 @@ const SYNONYM_CLUSTERS = [
 
 // Every flag type belongs to exactly one axis. The axis points sum to the
 // score, so the breakdown is always the reason for the number, never a
-// separate opinion about it. Four-axis code framing follows sloppylint;
-// the five-dimension prose split follows stop-slop.
+// separate opinion about it.
 const PHRASING_TYPES = [
   "cliche opener",
   "hype phrase",

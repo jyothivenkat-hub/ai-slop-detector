@@ -190,15 +190,7 @@ Statistical watermarking is not, and any tool that claims otherwise is guessing.
 - Show your work. If the tool cannot tell you why, do not trust the number.
 - Test it against good human writing before you trust it against slop.
 
-## Credits for the checks
+## Third-party code
 
-- Four-axis code scoring and cross-language leakage:
-  [rsionnach/sloppylint](https://github.com/rsionnach/sloppylint)
-- Structural prose patterns:
-  [petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop)
-- Multi-dimension scoring rubric:
-  [hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop)
-- Code-mode framing:
-  [flamehaven01/AI-SLOP-Detector](https://github.com/flamehaven01/AI-SLOP-Detector)
-- Watermark backend (vendored fork of):
-  [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)
+The watermark backend under `api/_wm/` is vendored from an MIT-licensed
+project; its license is retained in `api/_wm/LICENSE`.

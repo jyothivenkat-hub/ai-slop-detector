@@ -117,17 +117,6 @@ started.
 Code is not auto-rewritten. A regex cannot safely edit logic, so code mode
 returns a numbered repair plan instead of a draft.
 
-## Credits for the checks
-
-- Four-axis code scoring and cross-language leakage:
-  [rsionnach/sloppylint](https://github.com/rsionnach/sloppylint)
-- Structural prose patterns:
-  [petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop)
-- Multi-dimension scoring rubric:
-  [hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop)
-- Code-mode LDR/ICR/DDC/purity framing:
-  [flamehaven01/AI-SLOP-Detector](https://github.com/flamehaven01/AI-SLOP-Detector)
-
 ## Scope
 
 Use this only on files you own or are authorized to edit. The upstream project
